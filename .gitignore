@@ -28,4 +28,4 @@ target
 #ignore generated assembly files
 *.s
 
-
+!lib/*
