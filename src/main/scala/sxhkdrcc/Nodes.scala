@@ -14,13 +14,15 @@ object Nodes {
 
   case object Nothing extends Trigger
 
+  case class Key(value: String) extends Trigger
+
   case class TSelect(options: List[Trigger]) extends Trigger
 
   sealed trait Command
 
-  case object Comm extends Command
-
   case class Literal(value: String) extends Command
+
+  case class StringLiteral(value: String) extends Command
 
   case class CSelect(options: List[Command]) extends Command
 

@@ -5,36 +5,21 @@ import parsley.Combinator._
 import parsley.Parsley._
 import parsley._
 
-import scala.language.implicitConversions
-
 import sxhkdrcc.Nodes._
+import sxhkdrcc.parsers._
+import sxhkdrcc.parsers.Utils._
 
-object Main {
+object Compiler {
   def main(args: Array[String]): Unit = {
-    val ident = token(some(alphaNum).map(_.mkString))
-
-    val substitute = "#" *> ident <#> Substitute
-
-    val nothing = "_" #> Nothing
-
-    lazy val selectTrig: Parsley[Trigger] = ("{" *> sepBy1(nothing <|> trigger, ",") <* "}") <#> TSelect
-    lazy val selectComm: Parsley[Command] = ("{" *> sepBy1(command, ",") <* "}") <#> CSelect
-
-    lazy val trigger = substitute <|> selectTrig <|> ("gtrig" #> Trig)
-    lazy val command = substitute <|> selectComm <|> ("gcomm" #> Comm)
 
     val declare = lift2(Declare.apply, "let" *> ident, "=" *> ident)
-    val binding = lift2(Binding.apply, sepBy1(trigger, "+"), ":" *>  many(command))
+    val binding = lift2(Binding.apply, sepBy1(TriggerParser.parser, "+"), ":" *>  many(CommandParser.parser))
 
     val prog = sepEndBy1(declare <|> binding, some(endOfLine)) <* many(whitespace) <* notFollowedBy(anyChar)
 
     val src =
       """let primary = alt
-        |let secondary = super
-        |let arg1 = q
-        |let arg2 = r
-        |#primary + #secondary + {_, gtrig}:     gcomm {#arg1, #arg2}
-        |#primary + gtrig:                       gcomm #arg1 #arg2
+        |#primary + {a,b,c,_} + x:   this is a test command with arguments {1, 2, 3, 5}
       """.stripMargin
 
     runParser(prog, src) match {
@@ -42,10 +27,4 @@ object Main {
       case Failure(msg) => print(msg)
     }
   }
-
-  implicit def charToken(c: Char): Parsley[Char] = token(char(c))
-  implicit def stringToken(s: String): Parsley[String] = token(string(s))
-  def token[A](t: => Parsley[A]): Parsley[A] = attempt(t) <* many(
-    char(' ') <|> char('\t') <|> char('\f') <|> char('\u000b')
-  )
 }
